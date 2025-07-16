@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import os
 from typing import AsyncGenerator
 import aiohttp
 import fastapi
@@ -9,7 +10,7 @@ from app.utils import fetch_post
 
 @asynccontextmanager
 async def lifespan(app: fastapi.FastAPI) -> AsyncGenerator:
-    app.state.session = aiohttp.ClientSession()
+    app.state.session = aiohttp.ClientSession(proxy=os.getenv("HTTP_PROXY"))
 
     try:
         yield
