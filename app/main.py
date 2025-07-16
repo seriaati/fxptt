@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 import os
 from typing import AsyncGenerator
 import aiohttp
@@ -7,10 +8,16 @@ from fastapi import responses
 
 from app.utils import fetch_post
 
+logger = logging.getLogger("uvicorn")
+
 
 @asynccontextmanager
 async def lifespan(app: fastapi.FastAPI) -> AsyncGenerator:
-    app.state.session = aiohttp.ClientSession(proxy=os.getenv("HTTP_PROXY"))
+    proxy_url = os.getenv("HTTP_PROXY")
+    if proxy_url is not None:
+        logger.info("Using proxy")
+
+    app.state.session = aiohttp.ClientSession(proxy=proxy_url)
 
     try:
         yield
