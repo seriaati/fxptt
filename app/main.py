@@ -35,7 +35,6 @@ async def fix_post(
         return fastapi.responses.RedirectResponse(post_url)
 
     post = await fetch_post(app.state.session, url=post_url)
-    print(post)
 
     html = f"""
     <html>
