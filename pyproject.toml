@@ -1,0 +1,13 @@
+[project]
+name = "fxptt"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiohttp>=3.12.14",
+    "beautifulsoup4>=4.13.4",
+    "fastapi>=0.116.1",
+    "lxml>=6.0.0",
+    "uvicorn>=0.35.0",
+]
