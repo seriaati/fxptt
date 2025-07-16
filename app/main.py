@@ -3,10 +3,13 @@ import logging
 import os
 from typing import AsyncGenerator
 import aiohttp
+from dotenv import load_dotenv
 import fastapi
 from fastapi import responses
 
 from app.utils import fetch_post
+
+load_dotenv()
 
 logger = logging.getLogger("uvicorn")
 
