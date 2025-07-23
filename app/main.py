@@ -35,6 +35,9 @@ app = fastapi.FastAPI(lifespan=lifespan)
 def read_root() -> responses.RedirectResponse:
     return responses.RedirectResponse("https://github.com/seriaati/fxptt")
 
+@app.get("/health")
+def health_check() -> dict:
+    return {"status": "ok"}
 
 @app.get("/bbs/{board_name}/{post_id}")
 async def fix_post(
