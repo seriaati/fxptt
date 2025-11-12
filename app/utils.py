@@ -39,12 +39,10 @@ async def fetch_post(session: aiohttp.ClientSession, *, url: str) -> Post:
 
     content = main_content.get_text().strip().removesuffix("--")
 
-    # Extract imgur URL from content
-    imgur_match = re.search(
-        r"https?://i.imgur.com/[a-zA-Z0-9]+.(jpg|png|gif|webp|jpeg)", content
-    )
-    if imgur_match:
-        image = imgur_match.group(0)
+    # Extract image URL from content
+    image_match = re.search(r"https?://[^\s]+\.(?:jpg|png|gif|webp|jpeg)", content)
+    if image_match:
+        image = image_match.group(0)
         content = content.replace(image, "").removeprefix("\n").strip()
     else:
         image = None
