@@ -15,7 +15,8 @@ class Post:
 
 
 async def fetch_post(session: aiohttp.ClientSession, *, url: str) -> Post:
-    async with session.get(url, cookies={"over18": "1"}) as resp:
+    connector = aiohttp.TCPConnector(ssl=False)
+    async with session.get(url, cookies={"over18": "1"}, connector=connector) as resp:
         html = await resp.text()
 
     soup = BeautifulSoup(html, "lxml")
