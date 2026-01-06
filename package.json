@@ -1,0 +1,29 @@
+{
+  "name": "fxptt",
+  "version": "0.1.0",
+  "description": "修復 PTT 在 Discord 上的連結預覽",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "ptt",
+    "discord",
+    "embed",
+    "cloudflare-workers"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250106.0",
+    "@types/node": "^22.10.5",
+    "cheerio": "^1.0.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.54.0"
+  }
+}
