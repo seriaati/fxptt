@@ -1,6 +1,6 @@
 from workers import WorkerEntrypoint  # pyright: ignore[reportMissingImports]
 import asgi  # pyright: ignore[reportMissingImports]
-from app import app
+from app.main import app
 
 
 class Default(WorkerEntrypoint):
