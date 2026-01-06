@@ -1,0 +1,3 @@
+name = "fxptt"
+main = "run.py"
+compatibility_date = "2026-01-06"
