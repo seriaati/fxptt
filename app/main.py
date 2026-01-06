@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 import logging
 import os
 from typing import AsyncGenerator
-import aiohttp
+import httpx
 from dotenv import load_dotenv
 import fastapi
 from fastapi import responses
@@ -20,7 +20,7 @@ async def lifespan(app: fastapi.FastAPI) -> AsyncGenerator:
     if proxy_url is not None:
         logger.info("Using proxy")
 
-    app.state.session = aiohttp.ClientSession(proxy=proxy_url)
+    app.state.session = httpx.AsyncClient(proxies=proxy_url)
 
     try:
         yield

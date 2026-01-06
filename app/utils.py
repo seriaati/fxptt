@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 import re
-import aiohttp
+import httpx
 from bs4 import BeautifulSoup
 
 
@@ -14,9 +14,9 @@ class Post:
     image: str | None = None
 
 
-async def fetch_post(session: aiohttp.ClientSession, *, url: str) -> Post:
-    async with session.get(url, cookies={"over18": "1"}) as resp:
-        html = await resp.text()
+async def fetch_post(session: httpx.AsyncClient, *, url: str) -> Post:
+    resp = await session.get(url, cookies={"over18": "1"})
+    html = resp.text
 
     soup = BeautifulSoup(html, "lxml")
 
