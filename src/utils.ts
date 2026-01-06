@@ -5,7 +5,7 @@ export interface Post {
   title: string;
   postedAt: string;
   content: string;
-  image: string | null;
+  images: string[];
 }
 
 export async function fetchPost(url: string): Promise<Post> {
@@ -43,20 +43,22 @@ export async function fetchPost(url: string): Promise<Post> {
     content = content.slice(0, -2).trim();
   }
 
-  // Extract image URL from content
-  const imageMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|png|gif|webp|jpeg)/);
-  let image: string | null = null;
+  // Extract all image URLs from content
+  const imageRegex = /https?:\/\/[^\s]+\.(?:jpg|png|gif|webp|jpeg)/g;
+  const images: string[] = [];
 
-  if (imageMatch) {
-    image = imageMatch[0];
-    content = content.replace(image, '').replace(/^\n/, '').trim();
+  for (const match of content.matchAll(imageRegex)) {
+    images.push(match[0]);
   }
+
+  // Remove all image URLs from content
+  content = content.replace(imageRegex, '').replace(/\n{2,}/g, '\n').trim();
 
   return {
     author,
     title,
     postedAt,
     content: content.trim(),
-    image
+    images
   };
 }

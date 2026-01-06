@@ -23,23 +23,32 @@ app.get('/bbs/:board_name/:post_id', async (c) => {
 
   const post = await fetchPost(postUrl);
 
+  // Generate image meta tags for each image
+  const ogImageMetaTags = post.images.map(img =>
+    `<meta property="og:image" content="${img}">`
+  ).join('\n        ');
+
+  const twitterImageMetaTags = post.images.map(img =>
+    `<meta name="twitter:image" content="${img}">`
+  ).join('\n        ');
+
   const html = `
     <html>
         <meta property="og:title" content="${post.title}">
         <meta property="og:description" content="${post.content}">
-        <meta property="og:image" content="${post.image || ''}">
+        ${ogImageMetaTags}
         <meta property="og:type" content="article">
         <meta property="og:url" content="${postUrl}">
         <meta property="og:site_name" content="PTT">
         <meta property="og:article:published_time" content="${post.postedAt}">
         <meta property="og:article:author" content="${post.author}">
 
-        <meta name="twitter:card" content="${post.image ? 'summary_large_image' : 'summary'}">
+        <meta name="twitter:card" content="${post.images.length > 0 ? 'summary_large_image' : 'summary'}">
         <meta name="twitter:site" content="PTT">
         <meta name="twitter:creator" content="${post.author}">
         <meta name="twitter:title" content="${post.title}">
         <meta name="twitter:description" content="${post.content}">
-        <meta name="twitter:image" content="${post.image || ''}">
+        ${twitterImageMetaTags}
     </html>
     `;
 
