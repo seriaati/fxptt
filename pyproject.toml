@@ -11,4 +11,8 @@ dependencies = [
     "lxml>=6.0.0",
     "python-dotenv>=1.1.1",
     "uvicorn>=0.35.0",
+    "webtypy>=0.1.7",
 ]
+
+[dependency-groups]
+dev = ["workers-py", "workers-runtime-sdk"]

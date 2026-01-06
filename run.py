@@ -1,5 +1,8 @@
-import uvicorn
-from app.main import app
+from workers import WorkerEntrypoint  # pyright: ignore[reportMissingImports]
+import asgi  # pyright: ignore[reportMissingImports]
+from app import app
 
-if __name__ == "__main__":
-    uvicorn.run(app, port=8052)
+
+class Default(WorkerEntrypoint):
+    async def fetch(self, request):
+        return await asgi.fetch(app, request, self.env)
