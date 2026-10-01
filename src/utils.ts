@@ -53,11 +53,11 @@ export async function fetchPost(url: string): Promise<Post | null> {
     content = content.slice(0, -2).trim();
   }
 
-  // Extract all image URLs from content
+  // Extract image URLs from content, skipping the signature after the first "--" line
   const imageRegex = /https?:\/\/[^\s]+\.(?:jpg|png|gif|webp|jpeg)/g;
   const images: string[] = [];
 
-  for (const match of content.matchAll(imageRegex)) {
+  for (const match of content.split(/\n--\n/)[0].matchAll(imageRegex)) {
     images.push(match[0]);
   }
 
