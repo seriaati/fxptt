@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { fetchPost } from './utils';
+import { renderComponentEmbed } from './renderComponentEmbed';
 
 function escapeHtml(s: string): string {
   return s
@@ -19,6 +20,24 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
+// Component-embed gallery videos: resolve a YouTube ID to a playable mp4 via koutube
+app.get('/yt/:file', async (c) => {
+  const id = c.req.param('file').replace(/\.mp4$/, '');
+  if (!/^[\w-]{11}$/.test(id)) {
+    return c.notFound();
+  }
+  try {
+    const resp = await fetch(`https://koutube.com/api/watch?v=${id}`, { cf: { cacheTtl: 3600 } });
+    const data = await resp.json() as { playerStreamUrl?: string; error?: string | null };
+    if (data.playerStreamUrl && !data.error) {
+      return c.redirect(data.playerStreamUrl, 302);
+    }
+  } catch {
+    // fall through to the thumbnail
+  }
+  return c.redirect(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`, 302);
+});
+
 app.get('/bbs/:board_name/:post_id', async (c) => {
   const boardName = c.req.param('board_name');
   const postId = c.req.param('post_id');
@@ -33,6 +52,12 @@ app.get('/bbs/:board_name/:post_id', async (c) => {
   if (!post) {
     return c.redirect(postUrl);
   }
+
+  // Built from the raw post fields, before anything is HTML-escaped
+  const componentEmbed = renderComponentEmbed(post, postUrl, new URL(c.req.url).origin);
+  const componentEmbedTag = componentEmbed
+    ? `<script id="discord:component-embed" type="application/json">${componentEmbed}</script>`
+    : '';
 
   const title = escapeHtml(post.title);
   const content = escapeHtml(post.content);
@@ -65,6 +90,7 @@ app.get('/bbs/:board_name/:post_id', async (c) => {
         <meta name="twitter:title" content="${title}">
         <meta name="twitter:description" content="${content}">
         ${twitterImageMetaTags}
+        ${componentEmbedTag}
       </head>
     </html>
     `;

@@ -6,6 +6,23 @@ export interface Post {
   postedAt: string;
   content: string;
   images: string[];
+  // Extra fields for the Discord component embed
+  boardName?: string;
+  authorId?: string;
+  authorNick?: string;
+  unix?: number;
+  body?: string;
+  media?: string[];
+  reply?: { authorId: string; authorNick: string; text: string };
+  forward?: { board: string; url: string | null; authorId: string | null; authorNick: string | null };
+  pushes?: Push[];
+  counts?: { up: number; down: number; arrow: number };
+}
+
+export interface Push {
+  tag: string;
+  user: string;
+  text: string;
 }
 
 export async function fetchPost(url: string): Promise<Post | null> {
@@ -43,6 +60,8 @@ export async function fetchPost(url: string): Promise<Post | null> {
 
   const mainContent = $('#main-content');
 
+  const embed = extractEmbedFields($, url);
+
   // Remove all div and span tags
   mainContent.find('div, span').remove();
 
@@ -69,6 +88,95 @@ export async function fetchPost(url: string): Promise<Post | null> {
     title,
     postedAt,
     content: content.trim(),
-    images
+    images,
+    unix,
+    ...embed
+  };
+}
+
+const EMBED_IMAGE_REGEX = /https?:\/\/[^\s]+\.(?:jpg|png|gif|webp|jpeg)/g;
+const YOUTUBE_REGEX = /https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?\S*?v=|shorts\/|live\/)|youtu\.be\/)[\w-]{11}\S*/g;
+
+function splitUser(s: string): [string, string] {
+  const m = s.match(/^(\S+)\s*(?:\((.*)\))?$/);
+  return [m?.[1] ?? s, m?.[2] ?? ''];
+}
+
+// Raw (unescaped, untruncated) fields for the component embed. Must run before the
+// div/span removal in fetchPost, and works on a clone so it does not affect it.
+function extractEmbedFields($: cheerio.CheerioAPI, url: string): Partial<Post> {
+  const main = $('#main-content').clone();
+
+  const meta: Record<string, string> = {};
+  main.children('.article-metaline, .article-metaline-right').each((_, el) => {
+    meta[$(el).find('.article-meta-tag').text()] = $(el).find('.article-meta-value').text().trim();
+  });
+  const [authorId, authorNick] = splitUser(meta['作者'] ?? '');
+
+  const f2 = main.children('span.f2').map((_, el) => $(el).text().trim()).get();
+
+  const pushes: Push[] = main.find('.push').map((_, el) => ({
+    tag: $(el).find('.push-tag').text().trim(),
+    user: $(el).find('.push-userid').text().trim(),
+    text: $(el).find('.push-content').text().replace(/^:\s?/, '').trim(),
+  })).get();
+  const counts = { up: 0, down: 0, arrow: 0 };
+  for (const p of pushes) {
+    if (p.tag === '推') counts.up++;
+    else if (p.tag === '噓') counts.down++;
+    else counts.arrow++;
+  }
+
+  // Quoted lines of a reply (": text"), without nested quotes or the quoted post's signature
+  const quoteLines = main.children('span.f6').map((_, el) => $(el).text().replace(/\n$/, '')).get()
+    .filter(l => l.startsWith(': ') && !l.startsWith(': : ') && !l.startsWith(': ※'))
+    .map(l => l.slice(2));
+  const quoteSig = quoteLines.findIndex(l => /^-{2,}\s*$/.test(l));
+  if (quoteSig >= 0) quoteLines.length = quoteSig;
+
+  main.find('.article-metaline, .article-metaline-right, .push, .richcontent, span.f2, span.f6').remove();
+  let body = main.text();
+  // Drop the signature and footer: everything from the first "--" line
+  const sig = body.search(/\n--\n/);
+  if (sig >= 0) body = body.slice(0, sig);
+
+  const media = [...body.matchAll(new RegExp(`${EMBED_IMAGE_REGEX.source}|${YOUTUBE_REGEX.source}`, 'g'))].map(m => m[0]);
+  // Drop lines that only held an image link (optionally numbered), then inline image links
+  body = body.split('\n')
+    .filter(l => !l.match(EMBED_IMAGE_REGEX) || !/^\s*(\d+[.)]\s*)?$/.test(l.replace(EMBED_IMAGE_REGEX, '')))
+    .join('\n')
+    .replace(EMBED_IMAGE_REGEX, '');
+
+  let reply: Post['reply'];
+  const quoteHeader = f2.find(l => l.startsWith('※ 引述《'));
+  if (quoteHeader) {
+    const [id, nick] = splitUser(quoteHeader.match(/《(.+)》/)?.[1] ?? '');
+    reply = { authorId: id, authorNick: nick, text: quoteLines.join('\n').trim() };
+  }
+
+  let forward: Post['forward'];
+  const forwardHeader = f2.find(l => l.startsWith('※ [本文轉錄自'));
+  if (forwardHeader) {
+    const srcUrl = f2.map(l => l.match(/文章網址: (\S+)/)?.[1]).find(u => u && u !== url) ?? null;
+    const hdr = body.match(/作者: (\S+) \(([^)]*)\)[^\n]*\n標題: [^\n]*\n時間: [^\n]*\n/);
+    if (hdr) body = body.replace(hdr[0], '');
+    forward = {
+      board: forwardHeader.match(/轉錄自 (\S+) 看板/)?.[1] ?? '',
+      url: srcUrl,
+      authorId: hdr?.[1] ?? null,
+      authorNick: hdr?.[2] ?? null,
+    };
+  }
+
+  return {
+    boardName: meta['看板'] || url.match(/\/bbs\/([^/]+)\//)?.[1],
+    authorId,
+    authorNick,
+    body: body.replace(/\n{3,}/g, '\n\n').trim(),
+    media,
+    reply,
+    forward,
+    pushes,
+    counts,
   };
 }
