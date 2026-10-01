@@ -30,6 +30,9 @@ app.get('/bbs/:board_name/:post_id', async (c) => {
   }
 
   const post = await fetchPost(postUrl);
+  if (!post) {
+    return c.redirect(postUrl);
+  }
 
   const title = escapeHtml(post.title);
   const content = escapeHtml(post.content);

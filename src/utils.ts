@@ -8,12 +8,16 @@ export interface Post {
   images: string[];
 }
 
-export async function fetchPost(url: string): Promise<Post> {
+export async function fetchPost(url: string): Promise<Post | null> {
   const resp = await fetch(url, {
     headers: {
       'Cookie': 'over18=1'
     }
   });
+  // Deleted or missing posts return 404
+  if (!resp.ok) {
+    return null;
+  }
   const html = await resp.text();
 
   const $ = cheerio.load(html);
