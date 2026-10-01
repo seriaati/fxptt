@@ -112,7 +112,7 @@ function build(post: Post, url: string, origin: string, lim: Limits): { containe
   const pushes = (post.pushes ?? []).slice(0, lim.pushes);
   if (pushes.length) {
     const lines = pushes.map(p => `> **${esc(p.tag)}** ${esc(p.user)}: ${escText(cut(p.text, 60))}`);
-    components.push(separator(true), { type: 10, content: `-# 💬 推文\n${lines.join('\n')}` });
+    components.push(separator(true), { type: 10, content: lines.join('\n') });
   }
 
   const counts = post.counts ?? { up: 0, down: 0, arrow: 0 };
