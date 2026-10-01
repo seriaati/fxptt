@@ -30,10 +30,16 @@ export async function fetchPost(url: string): Promise<Post | null> {
   const title = metaValues.eq(2).text().trim();
   const dateStr = metaValues.eq(3).text().trim();
 
-  // Parse posted_at in ISO 8601 format
+  // The post ID carries the unix timestamp: M.<unix>.A.XXX
+  const unixMatch = url.match(/\/M\.(\d+)\.A\./);
+  const unix = unixMatch ? Number(unixMatch[1]) : undefined;
+
+  // Parse posted_at in ISO 8601 format (PTT times are Taiwan time)
   const dateStrFixed = dateStr.split(/\s+/).join(' ');
-  const dt = new Date(dateStrFixed);
-  const postedAt = dt.toISOString();
+  const dt = new Date(`${dateStrFixed} GMT+0800`);
+  const postedAt = !isNaN(dt.getTime())
+    ? dt.toISOString()
+    : unix !== undefined ? new Date(unix * 1000).toISOString() : '';
 
   const mainContent = $('#main-content');
 
