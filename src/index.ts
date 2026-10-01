@@ -1,6 +1,14 @@
 import { Hono } from 'hono';
 import { fetchPost } from './utils';
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 const app = new Hono();
 
 app.get('/', (c) => {
@@ -23,32 +31,38 @@ app.get('/bbs/:board_name/:post_id', async (c) => {
 
   const post = await fetchPost(postUrl);
 
+  const title = escapeHtml(post.title);
+  const content = escapeHtml(post.content);
+  const author = escapeHtml(post.author);
+
   // Generate image meta tags for each image
   const ogImageMetaTags = post.images.map(img =>
-    `<meta property="og:image" content="${img}">`
+    `<meta property="og:image" content="${escapeHtml(img)}">`
   ).join('\n        ');
 
   const twitterImageMetaTags = post.images.map(img =>
-    `<meta name="twitter:image" content="${img}">`
+    `<meta name="twitter:image" content="${escapeHtml(img)}">`
   ).join('\n        ');
 
   const html = `
     <html>
-        <meta property="og:title" content="${post.title}">
-        <meta property="og:description" content="${post.content}">
+      <head>
+        <meta property="og:title" content="${title}">
+        <meta property="og:description" content="${content}">
         ${ogImageMetaTags}
         <meta property="og:type" content="article">
-        <meta property="og:url" content="${postUrl}">
+        <meta property="og:url" content="${escapeHtml(postUrl)}">
         <meta property="og:site_name" content="PTT">
         <meta property="og:article:published_time" content="${post.postedAt}">
-        <meta property="og:article:author" content="${post.author}">
+        <meta property="og:article:author" content="${author}">
 
         <meta name="twitter:card" content="${post.images.length > 0 ? 'summary_large_image' : 'summary'}">
         <meta name="twitter:site" content="PTT">
-        <meta name="twitter:creator" content="${post.author}">
-        <meta name="twitter:title" content="${post.title}">
-        <meta name="twitter:description" content="${post.content}">
+        <meta name="twitter:creator" content="${author}">
+        <meta name="twitter:title" content="${title}">
+        <meta name="twitter:description" content="${content}">
         ${twitterImageMetaTags}
+      </head>
     </html>
     `;
 
