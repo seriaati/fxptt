@@ -24,3 +24,5 @@ worker/
 *.tsbuildinfo
 
 .claude/
+# Serena
+.serena/
