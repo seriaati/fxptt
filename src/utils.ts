@@ -95,7 +95,6 @@ export async function fetchPost(url: string): Promise<Post | null> {
 }
 
 const EMBED_IMAGE_REGEX = /https?:\/\/[^\s]+\.(?:jpg|png|gif|webp|jpeg)/g;
-const YOUTUBE_REGEX = /https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?\S*?v=|shorts\/|live\/)|youtu\.be\/)[\w-]{11}\S*/g;
 
 function splitUser(s: string): [string, string] {
   const m = s.match(/^(\S+)\s*(?:\((.*)\))?$/);
@@ -140,7 +139,7 @@ function extractEmbedFields($: cheerio.CheerioAPI, url: string): Partial<Post> {
   const sig = body.search(/\n--\n/);
   if (sig >= 0) body = body.slice(0, sig);
 
-  const media = [...body.matchAll(new RegExp(`${EMBED_IMAGE_REGEX.source}|${YOUTUBE_REGEX.source}`, 'g'))].map(m => m[0]);
+  const media = [...body.matchAll(EMBED_IMAGE_REGEX)].map(m => m[0]);
   // Drop lines that only held an image link (optionally numbered), then inline image links
   body = body.split('\n')
     .filter(l => !l.match(EMBED_IMAGE_REGEX) || !/^\s*(\d+[.)]\s*)?$/.test(l.replace(EMBED_IMAGE_REGEX, '')))

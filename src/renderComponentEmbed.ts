@@ -5,7 +5,6 @@ import type { Post } from './utils';
 const MAX_BYTES = 2990;
 const ACCENT_COLOR = 0x000000;
 const MIN_BODY_CHARS = 120;
-const YOUTUBE_ID_REGEX = /(?:[?&]v=|youtu\.be\/|\/shorts\/|\/live\/)([\w-]{11})/;
 
 // Progressively tighter limits for when reply context and pushes crowd out the body
 const TIERS = [
@@ -17,10 +16,6 @@ const TIERS = [
 
 type Limits = (typeof TIERS)[number];
 type Component = Record<string, unknown>;
-
-export function youtubeId(url: string): string | null {
-  return url.match(YOUTUBE_ID_REGEX)?.[1] ?? null;
-}
 
 // Escape only what Discord would actually format, so common PTT text (C_Chat, [公告])
 // stays free of backslashes, which unfurls can render literally
@@ -72,7 +67,7 @@ function serialize(container: Component): string {
 
 const byteLength = (s: string) => new TextEncoder().encode(s).length;
 
-function build(post: Post, url: string, origin: string, lim: Limits): { container: Component; bodyChars: number } | null {
+function build(post: Post, url: string, lim: Limits): { container: Component; bodyChars: number } | null {
   const boardName = post.boardName!;
   const boardUrl = `https://www.ptt.cc/bbs/${boardName}/index.html`;
   const authorUrl = `https://www.ptt.cc/bbs/${boardName}/search?q=${encodeURIComponent(`author:${post.authorId}`)}`;
@@ -101,10 +96,7 @@ function build(post: Post, url: string, origin: string, lim: Limits): { containe
   const bodyComponent: Component = { type: 10, content: '' };
   if (body) components.push(bodyComponent);
 
-  const items = (post.media ?? []).slice(0, lim.gallery).map(m => {
-    const id = youtubeId(m);
-    return { media: { url: id ? `${origin}/yt/${id}.mp4` : m } };
-  });
+  const items = (post.media ?? []).slice(0, lim.gallery).map(m => ({ media: { url: m } }));
   if (items.length) {
     components.push(separator(false), { type: 12, items });
   }
@@ -154,13 +146,13 @@ function build(post: Post, url: string, origin: string, lim: Limits): { containe
 
 // Returns the serialized `discord:component-embed` JSON (already `<`-escaped for inline use),
 // or null when the post lacks the fields it needs or cannot fit the byte cap.
-export function renderComponentEmbed(post: Post, url: string, origin: string): string | null {
+export function renderComponentEmbed(post: Post, url: string): string | null {
   if (!post.boardName || !post.authorId || post.unix === undefined) return null;
 
   const bodyLength = Array.from(post.body ?? '').length;
   let fallback: Component | null = null;
   for (const lim of TIERS) {
-    const result = build(post, url, origin, lim);
+    const result = build(post, url, lim);
     if (!result) continue;
     if (result.bodyChars >= Math.min(MIN_BODY_CHARS, bodyLength)) return serialize(result.container);
     fallback ??= result.container;
