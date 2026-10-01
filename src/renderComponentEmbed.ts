@@ -22,10 +22,27 @@ export function youtubeId(url: string): string | null {
   return url.match(YOUTUBE_ID_REGEX)?.[1] ?? null;
 }
 
+// Escape only what Discord would actually format, so common PTT text (C_Chat, [公告])
+// stays free of backslashes, which unfurls can render literally
 function esc(s: string): string {
   return s
-    .replace(/[\\*_~`|\[\]<>]/g, '\\$&')
-    .replace(/^(\s*)(#|-# |[-+] |\d+\. )/gm, '$1\\$2');
+    .replace(/\\/g, '\\\\')
+    .replace(/\*|`|~~|\|\||\](?=\()/g, m => m.replace(/./g, '\\$&'))
+    .replace(/(^|\W)_|_(?=\W|$)/g, m => m.replace('_', '\\_'))
+    .replace(/<(?=[@#:]|a:|t:|https?:)/g, '\\<')
+    .replace(/^(\s*)(#|-# |[-+] |> |\d+\. )/gm, '$1\\$2');
+}
+
+// Link labels allow balanced brackets; replace unbalanced ones so the link still parses
+function escLabel(s: string): string {
+  let depth = 0;
+  let balanced = true;
+  for (const ch of s) {
+    if (ch === '[') depth++;
+    else if (ch === ']' && --depth < 0) balanced = false;
+  }
+  const label = balanced && depth === 0 ? s : s.replace(/\[/g, '［').replace(/\]/g, '］');
+  return esc(label);
 }
 
 // Escape Markdown outside URLs, keeping URLs bare so Discord autolinks them
@@ -63,9 +80,9 @@ function build(post: Post, url: string, origin: string, lim: Limits): { containe
   const components: Component[] = [{
     type: 10,
     content: [
-      `-# [${esc(boardName)}](${boardUrl}) · 批踢踢實業坊`,
-      `### [${esc(post.title)}](${url})`,
-      `**[${esc(post.authorId!)}](${authorUrl})**${nick(post.authorNick)}`,
+      `-# [${escLabel(boardName)}](${boardUrl}) · 批踢踢實業坊`,
+      `### [${escLabel(post.title)}](${url})`,
+      `**[${escLabel(post.authorId!)}](${authorUrl})**${nick(post.authorNick)}`,
     ].join('\n'),
   }];
 
@@ -75,7 +92,7 @@ function build(post: Post, url: string, origin: string, lim: Limits): { containe
   }
 
   if (post.forward) {
-    const source = post.forward.url ? `[${esc(post.forward.board)}](${post.forward.url})` : esc(post.forward.board);
+    const source = post.forward.url ? `[${escLabel(post.forward.board)}](${post.forward.url})` : esc(post.forward.board);
     const by = post.forward.authorId ? ` · **${esc(post.forward.authorId)}**${nick(post.forward.authorNick)}` : '';
     components.push({ type: 10, content: `-# ↪️ 轉錄自 ${source} 看板${by}` });
   }
